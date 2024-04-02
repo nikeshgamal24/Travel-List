@@ -19,7 +19,9 @@ export default function App() {
   //handler to update the packed and unpacked items form the list
   function handleToogleItem(id) {
     setItems((items) =>
-      items.map((item)=>item.id === id ? { ...item, packed: !item.packed } : item)
+      items.map((item) =>
+        item.id === id ? { ...item, packed: !item.packed } : item
+      )
     );
   }
 
@@ -27,8 +29,12 @@ export default function App() {
     <div className="app">
       <Logo />
       <Form onAddItems={handleAddItems} />
-      <PackingList items={items} onDeleteItem={handleDeleteItem} onToggleItem={handleToogleItem}/>
-      <Stats />
+      <PackingList
+        items={items}
+        onDeleteItem={handleDeleteItem}
+        onToggleItem={handleToogleItem}
+      />
+      <Stats items={items} />
     </div>
   );
 }
@@ -43,7 +49,10 @@ function Form({ onAddItems }) {
 
   function handleSubmit(e) {
     e.preventDefault();
-
+    if (!description) {
+      alert("Please! Insert essential item name...");
+      return;
+    }
     const newItem = { description, quantity, packed: false, id: Date.now() };
     console.log(newItem);
 
@@ -76,22 +85,54 @@ function Form({ onAddItems }) {
   );
 }
 
-function PackingList({ items, onDeleteItem ,onToggleItem}) {
+function PackingList({ items, onDeleteItem, onToggleItem }) {
+  const [sortBy, setSortBy] = useState("input");
+
+  let sortedItems;
+  if (sortBy === "input") sortedItems = items;
+
+  if (sortBy === "description")
+    sortedItems = items
+      .slice()
+      .sort((a, b) => a.description.localeCompare(b.description));
+
+  if (sortBy === "packed")
+    sortedItems = items
+      .slice()
+      .sort((a, b) => Number(a.packed) - Number(b.packed));
+
   return (
     <div className="list">
       <ul>
-        {items.map((item) => (
-          <Item item={item} key={item.id} onDeleteItem={onDeleteItem} onToggleItem={onToggleItem}/>
+        {sortedItems.map((item) => (
+          <Item
+            item={item}
+            key={item.id}
+            onDeleteItem={onDeleteItem}
+            onToggleItem={onToggleItem}
+          />
         ))}
       </ul>
+
+      <div className="actions">
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+          <option value="input">Sort By Input</option>
+          <option value="description">Sort By Description</option>
+          <option value="packed">Sort By Packed Status</option>
+        </select>
+      </div>
     </div>
   );
 }
 
-function Item({ item, onDeleteItem ,onToggleItem}) {
+function Item({ item, onDeleteItem, onToggleItem }) {
   return (
     <li>
-    <input type="checkbox" value={item.packed} onChange={()=>onToggleItem(item.id)}/>
+      <input
+        type="checkbox"
+        value={item.packed}
+        onChange={() => onToggleItem(item.id)}
+      />
       <span style={item.packed ? { textDecoration: "line-through" } : {}}>
         {item.quantity} {item.description}
       </span>
@@ -100,10 +141,25 @@ function Item({ item, onDeleteItem ,onToggleItem}) {
   );
 }
 
-function Stats() {
+function Stats({ items }) {
+  if (items.length === 0) {
+    return (
+      <p className="stats">Please, add some items to your packing lists 🚀</p>
+    );
+  }
+
+  //derived states
+  const numItem = items.length;
+  const numPacked = items.filter((item) => item.packed).length;
+  const percentage = Math.round((numPacked / numItem) * 100);
+
   return (
     <footer className="stats">
-      <em>👜You Have X items on your list. and you already packed X (X%)</em>
+      <em>
+        {percentage === 100
+          ? "You got everything! Ready to go ✈️"
+          : `👜You Have ${numItem} items on your list. and you already packed ${numPacked} (${percentage}%)`}
+      </em>
     </footer>
   );
 }
